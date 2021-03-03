@@ -1,32 +1,33 @@
 {
-    "name": "constantable/laravel-scout-sphinx",
-    "description": "Laravel Scout Sphinx Driver",
-    "license": "MIT",
-    "minimum-stability": "dev",
-    "require": {
-        "php": ">=7.0",
-        "laravel/scout": "^5.0|^6.0|^7.0",
-        "foolz/sphinxql-query-builder": "^2.0"
-    },
-    "require-dev": {
-        "mockery/mockery": "^1.0",
-        "phpunit/phpunit": "^7.5"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Constantable\\SphinxScout\\ServiceProvider"
-            ]
-        }
-    },
-    "autoload": {
-        "psr-4": {
-            "Constantable\\SphinxScout\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Constantable\\SphinxScout\\Tests\\": "tests/"
-        }
+  "name": "diezeel/laravel-scout-manticore",
+  "description": "Laravel Scout Manticore Driver",
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=7.3",
+    "laravel/scout": "^7.0|^8.0",
+    "evilfreelancer/laravel-manticoresearch": "^1.4"
+  },
+  "require-dev": {
+    "mockery/mockery": "^1.4.2",
+    "phpunit/phpunit": "^9.3.3",
+    "squizlabs/php_codesniffer": "^3.5"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Diezeel\\ManticoreScout\\ServiceProvider"
+      ]
     }
+  },
+  "autoload": {
+    "psr-4": {
+      "Diezeel\\ManticoreScout\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Diezeel\\ManticoreScout\\Tests\\": "tests/"
+    }
+  }
 }

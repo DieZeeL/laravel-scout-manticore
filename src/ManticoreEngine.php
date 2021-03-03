@@ -1,6 +1,6 @@
 <?php
 
-namespace Constantable\SphinxScout;
+namespace Diezeel\ManticoreScout;
 
 use Foolz\SphinxQL\Helper;
 use Foolz\SphinxQL\SphinxQL;
@@ -9,23 +9,25 @@ use Illuminate\Support\Collection;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine as AbstractEngine;
 use Laravel\Scout\Searchable;
+use ManticoreSearch\Laravel\Facade;
+use ManticoreSearch\Laravel\ManticoreSearchable;
 
-class SphinxEngine extends AbstractEngine
+class ManticoreEngine extends AbstractEngine
 {
 
     /**
-     * @var SphinxQL
+     * @var \ManticoreSearch\Client $manticore
      */
-    protected $sphinx;
+    protected $manticore;
 
     /**
      * @var array
      */
     protected $whereIns = [];
 
-    public function __construct($sphinx)
+    public function __construct()
     {
-        $this->sphinx = $sphinx;
+        $this->manticore = Facade::connection();
     }
 
     /**
@@ -39,20 +41,11 @@ class SphinxEngine extends AbstractEngine
         if ($models->isEmpty()) {
             return;
         }
+
         $models->each(function ($model) {
             if (!empty($searchableData = $model->toSearchableArray())) {
-                if (isset($model->isRT)) { // Only RT indexes support replace
-                    $index = $model->searchableAs();
-                    $searchableData['id'] = (int)$model->getKey();
-                    $columns = array_keys($searchableData);
-
-                    $sphinxQuery = $this->sphinx
-                        ->replace()
-                        ->into($index)
-                        ->columns($columns)
-                        ->values($searchableData);
-                    $sphinxQuery->execute();
-                }
+                $index = $this->manticore->index($model->searchableAs());
+                $index->replaceDocument($searchableData,(int)$model->getScoutKey());
             }
         });
     }
@@ -69,15 +62,8 @@ class SphinxEngine extends AbstractEngine
             return;
         }
         $models->each(function ($model) {
-            if (isset($model->isRT)) { // Only RT indexes support deletes
-                $index = $model->searchableAs();
-                $key = $model->getKey();
-                $sphinxQuery = $this->sphinx
-                    ->delete()
-                    ->from($index)
-                    ->where('id', '=', $key);
-                $sphinxQuery->execute();
-            }
+            $index = $this->manticore->index($model->searchableAs());
+            $index->deleteDocument((int)$model->getScoutKey());
         });
     }
 
@@ -89,8 +75,14 @@ class SphinxEngine extends AbstractEngine
      */
     public function search(Builder $builder)
     {
-        return $this->performSearch($builder)
-            ->execute();
+        /**
+         * @var Searchable $model
+         */
+//        $model = $builder->model;
+//        $index = $this->manticore->index($model->searchableAs());
+//        $query = $index->search($builder->query)
+
+        return $builder->get();
     }
 
     /**
@@ -161,7 +153,7 @@ class SphinxEngine extends AbstractEngine
                 $totalCount = $value["Value"];
             }
         }
-        
+
         return $totalCount;
     }
 
@@ -191,7 +183,12 @@ class SphinxEngine extends AbstractEngine
          * @var Searchable $model
          */
         $model = $builder->model;
-        $index = $model->searchableAs();
+        $index = $this->manticore->index($model->searchableAs());
+        $query = $index->search($builder->query);
+
+        foreach ($builder->wheres as $clause => $filters) {
+            $query->filter($clause, 'eq', $filters);
+        }
 
         $query = $this->sphinx
             ->select('*', SphinxQL::expr('WEIGHT() AS weight'))
