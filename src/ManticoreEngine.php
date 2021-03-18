@@ -33,7 +33,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Update the given model in the index.
      *
-     * @param \Illuminate\Database\Eloquent\Collection $models
+     * @param  \Illuminate\Database\Eloquent\Collection  $models
      * @return void
      */
     public function update($models)
@@ -42,18 +42,38 @@ class ManticoreEngine extends AbstractEngine
             return;
         }
 
-        $models->each(function ($model) {
-            if (!empty($searchableData = $model->toSearchableArray())) {
-                $index = $this->manticore->index($model->searchableAs());
-                $index->replaceDocument($searchableData,(int)$model->getScoutKey());
-            }
+        $data = $models->map(function ($model, $key) {
+            return $model->toSearchableArray();
         });
+
+        $index = $this->manticore->index($models->first()->searchableAs());
+        $index->replaceDocuments($data);
+    }
+
+    /**
+     * Update the given model in the index.
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection  $models
+     * @return void
+     */
+    public function create($models)
+    {
+        if ($models->isEmpty()) {
+            return;
+        }
+
+        $data = $models->map(function ($model, $key) {
+            return $model->toSearchableArray();
+        });
+
+        $index = $this->manticore->index($models->first()->searchableAs());
+        $index->addDocuments($data);
     }
 
     /**
      * Remove the given model from the index.
      *
-     * @param \Illuminate\Database\Eloquent\Collection $models *
+     * @param  \Illuminate\Database\Eloquent\Collection  $models  *
      * @return void
      */
     public function delete($models)
@@ -61,6 +81,7 @@ class ManticoreEngine extends AbstractEngine
         if ($models->isEmpty()) {
             return;
         }
+
         $models->each(function ($model) {
             $index = $this->manticore->index($model->searchableAs());
             $index->deleteDocument((int)$model->getScoutKey());
@@ -70,7 +91,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Perform the given search on the engine.
      *
-     * @param Builder $builder
+     * @param  Builder  $builder
      * @return mixed
      */
     public function search(Builder $builder)
@@ -82,15 +103,15 @@ class ManticoreEngine extends AbstractEngine
 //        $index = $this->manticore->index($model->searchableAs());
 //        $query = $index->search($builder->query)
 
-        return $builder->get();
+        return $builder->search->get();
     }
 
     /**
      * Perform the given search on the engine.
      *
-     * @param Builder $builder
-     * @param int $perPage
-     * @param int $page
+     * @param  Builder  $builder
+     * @param  int  $perPage
+     * @param  int  $page
      * @return mixed
      */
     public function paginate(Builder $builder, $perPage, $page)
@@ -102,9 +123,9 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Map the given results to instances of the given model.
      *
-     * @param Builder $builder
-     * @param mixed $results
-     * @param Model|Searchable $model
+     * @param  Builder  $builder
+     * @param  mixed  $results
+     * @param  Model|Searchable  $model
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function map(Builder $builder, $results, $model)
@@ -113,7 +134,9 @@ class ManticoreEngine extends AbstractEngine
             return $model->newCollection();
         }
 
-        $objectIds = collect($results->fetchAllAssoc())->pluck('id')->values()->all();
+        $objectIds = collect($results)->map(function ($item, $key) {
+            return $item->getId();
+        })->all();
 
         $objectIdPositions = array_flip($objectIds);
 
@@ -129,7 +152,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Pluck and return the primary keys of the given results.
      *
-     * @param mixed $results
+     * @param  mixed  $results
      * @return Collection
      */
     public function mapIds($results)
@@ -140,7 +163,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Get the total count from a raw result returned by the engine.
      *
-     * @param mixed $results
+     * @param  mixed  $results
      * @return int
      */
     public function getTotalCount($results)
@@ -160,7 +183,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Flush all of the model's records from the engine.
      *
-     * @param Model $model
+     * @param  Model  $model
      * @return void
      */
     public function flush($model)
@@ -174,7 +197,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * Perform the given search on the engine.
      *
-     * @param Builder $builder
+     * @param  Builder  $builder
      * @return SphinxQL
      */
     protected function performSearch(Builder $builder)
@@ -194,7 +217,7 @@ class ManticoreEngine extends AbstractEngine
             ->select('*', SphinxQL::expr('WEIGHT() AS weight'))
             ->from($index)
             ->match('*', SphinxQL::expr('"' . $builder->query . '"/1'))
-            ->limit($builder->limit??20);
+            ->limit($builder->limit ?? 20);
 
         foreach ($builder->wheres as $clause => $filters) {
             $query->where($clause, '=', $filters);
@@ -223,8 +246,8 @@ class ManticoreEngine extends AbstractEngine
     }
 
     /**
-     * @param string $attribute
-     * @param array $arrayIn
+     * @param  string  $attribute
+     * @param  array  $arrayIn
      */
     public function addWhereIn(string $attribute, array $arrayIn)
     {
