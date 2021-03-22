@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Diezeel\ManticoreScout;
 
 use Illuminate\Container\Container;
@@ -82,7 +81,9 @@ class Builder extends ScoutBuilder
         // passed to the method, we will assume that the operator is an equals sign
         // and keep going. Otherwise, we'll require the operator to be passed in.
         [$value, $operator] = $this->prepareValueAndOperator(
-            $value, $operator, func_num_args() === 2
+            $value,
+            $operator,
+            func_num_args() === 2
         );
 
         switch ($operator) {
@@ -263,7 +264,9 @@ class Builder extends ScoutBuilder
         $perPage = $perPage ?: $this->model->getPerPage();
 
         $results = $this->model->newCollection($engine->map(
-            $this, $rawResults = $engine->paginate($this, $perPage, $page), $this->model
+            $this,
+            $rawResults = $engine->paginate($this, $perPage, $page),
+            $this->model
         )->all());
 
         $total = $engine->getTotalCount($rawResults);
@@ -300,7 +303,9 @@ class Builder extends ScoutBuilder
         $perPage = $perPage ?: $this->model->getPerPage();
 
         $results = $this->model->newCollection($engine->map(
-            $this, $rawResults = $engine->paginate($this, $perPage, $page), $this->model
+            $this,
+            $rawResults = $engine->paginate($this, $perPage, $page),
+            $this->model
         )->all());
 
         $paginator = Container::getInstance()->makeWith(LengthAwarePaginator::class, [

@@ -3,7 +3,6 @@
 namespace Diezeel\ManticoreScout;
 
 use Foolz\SphinxQL\Helper;
-use Foolz\SphinxQL\SphinxQL;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Laravel\Scout\Builder;
@@ -23,7 +22,7 @@ class ManticoreEngine extends AbstractEngine
     /**
      * @var array
      */
-    protected $whereIns = [];
+    protected $results;
 
     public function __construct()
     {
@@ -96,14 +95,8 @@ class ManticoreEngine extends AbstractEngine
      */
     public function search(Builder $builder)
     {
-        /**
-         * @var Searchable $model
-         */
-//        $model = $builder->model;
-//        $index = $this->manticore->index($model->searchableAs());
-//        $query = $index->search($builder->query)
-
-        return $builder->search->get();
+        $this->results = $builder->search->get();
+        return $this->results;
     }
 
     /**
@@ -116,8 +109,8 @@ class ManticoreEngine extends AbstractEngine
      */
     public function paginate(Builder $builder, $perPage, $page)
     {
-        return $this->performSearch($builder)->limit($perPage * ($page - 1), $perPage)
-            ->execute();
+        $this->results = $builder->search->limit($perPage)->offset($perPage * ($page - 1))->get();
+        return $this->results;
     }
 
     /**
@@ -168,16 +161,11 @@ class ManticoreEngine extends AbstractEngine
      */
     public function getTotalCount($results)
     {
-        $res = (new Helper($this->sphinx->getConnection()))->showMeta()->execute();
-        $assoc = $res->fetchAllAssoc();
-        $totalCount = $results->count();
-        foreach ($assoc as $item => $value) {
-            if ($value["Variable_name"] == "total_found") {
-                $totalCount = $value["Value"];
-            }
+        if ($this->results) {
+            return $this->results->getTotal();
         }
 
-        return $totalCount;
+        return null;
     }
 
     /**
@@ -194,63 +182,63 @@ class ManticoreEngine extends AbstractEngine
         }
     }
 
-    /**
-     * Perform the given search on the engine.
-     *
-     * @param  Builder  $builder
-     * @return SphinxQL
-     */
-    protected function performSearch(Builder $builder)
-    {
-        /**
-         * @var Searchable $model
-         */
-        $model = $builder->model;
-        $index = $this->manticore->index($model->searchableAs());
-        $query = $index->search($builder->query);
+//    /**
+//     * Perform the given search on the engine.
+//     *
+//     * @param  Builder  $builder
+//     * @return SphinxQL
+//     */
+//    protected function performSearch(Builder $builder)
+//    {
+//        /**
+//         * @var Searchable $model
+//         */
+//        $model = $builder->model;
+//        $index = $this->manticore->index($model->searchableAs());
+//        $query = $index->search($builder->query);
+//
+//        foreach ($builder->wheres as $clause => $filters) {
+//            $query->filter($clause, 'eq', $filters);
+//        }
+//
+//        $query = $this->sphinx
+//            ->select('*', SphinxQL::expr('WEIGHT() AS weight'))
+//            ->from($index)
+//            ->match('*', SphinxQL::expr('"' . $builder->query . '"/1'))
+//            ->limit($builder->limit ?? 20);
+//
+//        foreach ($builder->wheres as $clause => $filters) {
+//            $query->where($clause, '=', $filters);
+//        }
+//
+//        foreach ($this->whereIns as $whereIn) {
+//            $query->where(key($whereIn), 'IN', $whereIn[key($whereIn)]);
+//        }
+//
+//        if ($builder->callback) {
+//            call_user_func(
+//                $builder->callback,
+//                $query
+//            );
+//        }
+//
+//        if (empty($builder->orders)) {
+//            $query->orderBy('weight', 'DESC');
+//        } else {
+//            foreach ($builder->orders as $order) {
+//                $query->orderBy($order['column'], $order['direction']);
+//            }
+//        }
+//
+//        return $query;
+//    }
 
-        foreach ($builder->wheres as $clause => $filters) {
-            $query->filter($clause, 'eq', $filters);
-        }
-
-        $query = $this->sphinx
-            ->select('*', SphinxQL::expr('WEIGHT() AS weight'))
-            ->from($index)
-            ->match('*', SphinxQL::expr('"' . $builder->query . '"/1'))
-            ->limit($builder->limit ?? 20);
-
-        foreach ($builder->wheres as $clause => $filters) {
-            $query->where($clause, '=', $filters);
-        }
-
-        foreach ($this->whereIns as $whereIn) {
-            $query->where(key($whereIn), 'IN', $whereIn[key($whereIn)]);
-        }
-
-        if ($builder->callback) {
-            call_user_func(
-                $builder->callback,
-                $query
-            );
-        }
-
-        if (empty($builder->orders)) {
-            $query->orderBy('weight', 'DESC');
-        } else {
-            foreach ($builder->orders as $order) {
-                $query->orderBy($order['column'], $order['direction']);
-            }
-        }
-
-        return $query;
-    }
-
-    /**
-     * @param  string  $attribute
-     * @param  array  $arrayIn
-     */
-    public function addWhereIn(string $attribute, array $arrayIn)
-    {
-        $this->whereIns[] = array($attribute => $arrayIn);
-    }
+//    /**
+//     * @param  string  $attribute
+//     * @param  array  $arrayIn
+//     */
+//    public function addWhereIn(string $attribute, array $arrayIn)
+//    {
+//        $this->whereIns[] = array($attribute => $arrayIn);
+//    }
 }
