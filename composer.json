@@ -6,7 +6,7 @@
   "require": {
     "php": ">=7.3",
     "laravel/scout": "^7.0|^8.0",
-    "evilfreelancer/laravel-manticoresearch": "^1.4"
+    "evilfreelancer/laravel-manticoresearch": "dev:master"
   },
   "require-dev": {
     "mockery/mockery": "^1.4.2",
